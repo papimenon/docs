@@ -1,0 +1,69 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Cisco and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    name: Prepare
+    outputs:
+      run_id: ${{ steps.vars.outputs.run_id }}
+      short_sha: ${{ steps.vars.outputs.short_sha }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve required vars
+        id: vars
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == "refs/pull/"* ]]; then
+            # For push from PR, resolve to: <PR number>-<commit sha>
+            run_id="${{ format('pr{0}-{1}', github.event.pull_request.number, github.sha) }}"
+          elif [[ "${GITHUB_REF}" == "refs/tags/"* ]]; then
+            # For tag push, resolve to: <tag>
+            run_id="${GITHUB_REF#refs/tags/}"
+          else
+            # For main push, resolve to: <commit sha>
+            run_id="${{ format('{0}', github.sha) }}"
+            short_sha="${run_id:0:7}"
+          fi
+
+          # Export vars
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$short_sha" >> "$GITHUB_OUTPUT"
+
+  docs:
+    name: Docs
+    needs:
+      - prepare
+    uses: ./.github/workflows/reusable-docs.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    with:
+      deploy: ${{ fromJSON(github.ref == 'refs/heads/main' && 'true' || 'false') }}
+      version: v0.1.0-${{ needs.prepare.outputs.short_sha }}
+
+  success:
+    name: Success
+    if: ${{ !cancelled() && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'failure') }}
+    needs:
+      - prepare
+      - docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo Success
+        run: echo "::notice Success!"
