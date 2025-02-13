@@ -24,23 +24,22 @@ Internet of Agents Components
    pages/maa-toolkit
 
 .. toctree::
-   :caption: Multi-Agent Application Composer
+   :caption: Agent Connect Protocol
    :maxdepth: 2
 
-   pages/composer
+   pages/connect
+
+.. toctree::
+   :caption: Manifest
+   :maxdepth: 2
+
+   pages/manifest
 
 .. toctree::
    :caption: Agent Workflow Server
    :maxdepth: 2
 
    pages/workflow
-
-
-.. toctree::
-   :caption: Agent Connect Protocol
-   :maxdepth: 2
-
-   pages/connect
 
 .. toctree::
    :caption: Agent Gateway Protocol
@@ -82,6 +81,12 @@ Internet of Agents Components
    :maxdepth: 1
 
    pages/evaluation
+
+.. toctree::
+   :caption: Multi-Agent Application Composer
+   :maxdepth: 2
+
+   pages/composer
 
 .. toctree::
    :caption: Getting Started
