@@ -14,10 +14,10 @@ We are an open source collective that will build the Internet of Agents to be ac
 ### Capabilities
 
 Based on advanced protocols, frameworks and components, the goal of IoA software infrastructure enables and simplify the creation of multi-agent applications through the following steps:
-	1	DISCOVER: Find and evaluate the best agents for the job 
-	2	COMPOSE: Connect agents into effective workflows across any framework or vendor 
-	3	DEPLOY: Run multi-agent systems at scale, securely 
-	4	EVALUATE: Monitor performance and improve efficiency and efficacy over time 
+1. DISCOVER: Find and evaluate the best agents for the job.
+1. COMPOSE: Connect agents into effective workflows across any framework or vendor.
+1. DEPLOY: Run multi-agent systems at scale, securely. 
+1. EVALUATE: Monitor performance and improve efficiency and efficacy over time.
 
 ### Technical Objectives
 
@@ -36,11 +36,11 @@ The initial set of IoA components and architecture is described below. As a very
 :align: center
 ```
 
-1. **Open Agent Schema Framework (OASF)**: A framework that provides standardized data models and schemas for representing and validating data exchanged between agents. OASF ensures data integrity and consistency across the Internet of Agents ecosystem.
+1. **Open Agent Schema Framework (OASF)**: A framework that provides standardized data models and schemas for representing and validating data exchanged between agents. OASF ensures data integrity and consistency across the Internet of Agents ecosystem. Current OASF repo can be found [here](https://github.com/agntcy/oasf), OASF schema documentation can be found [here](https://schema.oasf.agntcy.org).
 1. **Agent Directory**: A centralized service that stores and manages OASF metadata about AI agents, including their capabilities, attributes, and constraints. This service enables agents to discover and connect with each other based on their advertised capabilities.
 1. **Decentralized Agent Identity**: A system that leverages decentralized technologies to manage and verify the identities of Agents issued by any organization, ensuring secure and trustworthy interactions.
-1. **Agent Connect Protocol (ACP)**: A protocol that defines a standard interface to invoke agents, configure them, provide input, and retrieve output.
-1. **Multi-Agent Application Toolkit**: A set of agents and software libraries that support seamless creation of Multi-Agent workflows.
+1. **Agent Connect Protocol (ACP)**: A protocol that defines a standard interface to invoke agents, configure them, provide input, and retrieve output. Current ACP spec can be found [here](https://spec.acp.agntcy.org/).
+1. **Multi-Agent Application Toolkit**: A set of agents and software libraries that support seamless creation of Multi-Agent workflows. 
 1. **Agent Workflow Server**: A server that leverages ACP to manage and executes workflows involving multiple AI agents, ensuring coordinated and efficient task execution.
 1. **Agent Manifest**: A standard format to describes agents, their capabilities, their dependencies, and how to deploy or consume them. The manifest is designed to be used by ACP and the Workflow Server and stored in the Agent Directory with the corresponding OASF extensions.  
 1. **Agent Gateway Protocol (AGP)**: A protocol that defines the standards and guidelines for secure and efficient network-level communication between AI agents. AGP ensures interoperability and seamless data exchange by specifying message formats, transport mechanisms, and interaction patterns.
