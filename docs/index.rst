@@ -1,8 +1,8 @@
 Internet of Agents Components
-==========================================
+=============================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
 .. toctree::
@@ -18,32 +18,6 @@ Internet of Agents Components
    pages/introduction
 
 .. toctree::
-   :caption: Agent Directory Service
-   :maxdepth: 1
-
-   pages/dir
-   pages/dir-howto
-
-.. toctree::
-   :caption: Application Toolkit
-   :maxdepth: 1
-
-   pages/maa-toolkit
-   pages/composer
-
-.. toctree::
-   :caption: Agent Connect Protocol
-   :maxdepth: 1
-
-   pages/connect
-
-.. toctree::
-   :caption: Agent Manifest
-   :maxdepth: 2
-
-   pages/manifest
-
-.. toctree::
    :caption: OASF
    :maxdepth: 1
 
@@ -53,18 +27,53 @@ Internet of Agents Components
    pages/oasf-workflow
 
 .. toctree::
-   :caption: Agent Gateway Protocol
+   :caption: Agent Directory Service
    :maxdepth: 1
 
-   pages/agp
-   pages/agp-security-layer
-   pages/agp-data-plane
-   pages/agp-control-plane
-   pages/agp-session-layer
-   pages/agp-howto
+   pages/dir
+   pages/dir-howto
+
+.. toctree::
+   :caption: Agent Manifest
+   :maxdepth: 1
+
+   pages/agws/manifest
+
+.. toctree::
+   :caption: Semantic SDK
+   :maxdepth: 1
+
+   pages/semantic_sdk/io_mapper
+   pages/semantic_sdk/semantic_router
+
+.. toctree::
+   :caption: Syntactic SDK
+   :maxdepth: 1
+
+   pages/syntactic_sdk/connect
+   pages/syntactic_sdk/agntcy_acp_sdk
+   pages/syntactic_sdk/api_bridge_agent
+   pages/syntactic_sdk/hil
+
+
+.. toctree::
+   :caption: Messaging SDK
+   :maxdepth: 1
+
+   pages/messaging_sdk/agp-index.rst
+   
+
+.. toctree::
+   :caption: Agent Workflow Server
+   :maxdepth: 1
+
+   pages/agws/workflow_server
+   pages/agws/workflow_server_manager
 
 .. toctree::
    :caption: CSIT
-   :maxdepth: 2
+   :maxdepth: 1
 
    pages/csit
+
+
