@@ -45,6 +45,8 @@ extensions = [
     "sphinxcontrib.mermaid",
     "sphinx_inline_tabs",
     "sphinxemoji.sphinxemoji",
+    'sphinx.ext.autodoc',
+    'sphinxcontrib.autodoc_pydantic',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
