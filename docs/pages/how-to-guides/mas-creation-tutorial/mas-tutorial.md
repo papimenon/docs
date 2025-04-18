@@ -1,4 +1,4 @@
-# Getting started with AGNTCY components: build your first app
+# Getting Started: Build Your First Multi-Agent Software
 
 This tutorial guides you through the process of building a distributed multi-agent application using [LangGraph](https://www.langchain.com/langgraph) and leveraging [Agent Connect Protocol (ACP)](https://docs.agntcy.org/pages/syntactic_sdk/connect.html) and other **AGNTCY** components and tools.
 
@@ -40,55 +40,31 @@ This tutorial is structured in the following steps:
 - [poetry](https://pypi.org/project/poetry/) v2 or greater
 - [curl](https://curl.se/)
 
-<!-- TODO: poetry new --python='>=3.9,<4.0' marketing-campaign-mas -->
-<!-- TODO: cd marketing-campaign-mas -->
-<!-- TODO: poetry add python-dotenv langgraph langchain-openai langchain agntcy-acp -->
+
 ## Step 1: Create a Basic LangGraph Skeleton Application
 
 Let's start by setting up our project environment. You can either use pip to install the required packages or Poetry for dependency management.
 
 ### Setting up the project
 
-First, create a new directory for your project:
+First, create a new project using Poetry:
 
 ```bash
-mkdir marketing-campaign-mas
-cd marketing-campaign-mas
+# Create a new Poetry project
+poetry new --python='>=3.9,<4.0' marketing-campaign
+cd marketing-campaign
 ```
 
-Create a `pyproject.toml` file with the following dependencies:
-
-```
-[project]
-name = "marketing-campaign-mas"
-version = "0.1.0"
-description = "Multi-agent software for marketing campaigns"
-dynamic = [ "dependencies" ]
-requires-python =  ">=3.9.0,<4.0"
-
-
-[tool.poetry.dependencies]
-python-dotenv = "^1.0.1"
-langgraph = "^0.3.5"
-langchain-openai = "^0.3.8"
-langchain = "^0.3.20"
-agntcy-acp = "1.1.2"
-
-[tool.poetry]
-packages = [{include = "marketing_campaign-mas", from = "."}]
-
-[build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
-```
+At this point, it's recommended to open the project folder in your favorite IDE for a better development experience.
 
 Install the dependencies:
 
 ```bash
-# Create virtual environment in .venv inside project directory
-export POETRY_VIRTUALENVS_IN_PROJECT=true
-# Install all dependencies
-poetry install --no-root
+# Add all dependencies
+poetry add python-dotenv langgraph langchain-openai langchain agntcy-acp
+
+# Install the current project (marketing-campaign) and dependencies
+poetry install
 ```
 
 
@@ -110,14 +86,12 @@ The ultimate goal of this application is to compose and review emails that will 
 
 To create the initial structure of our application (skeleton), we need to create a Python file that defines our LangGraph application with placeholder nodes. This serves as the foundation that we'll enhance later with ACP integration.
 
-Let's create a file named `marketing_campaign.py` with the following content:
+Let's create a file named `app.py` in the `src/marketing_campaign/` directory with the following content:
 
 ```python
-# marketing_campaign.py
-
+# app.py
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.state import CompiledStateGraph
-from langchain_core.runnables.graph import MermaidDrawMethod
 from pydantic import BaseModel, Field
 from typing import Optional, List
 
@@ -164,38 +138,31 @@ def build_app_graph() -> CompiledStateGraph:
     sg.add_edge(send_mail.__name__, END)
 
     graph = sg.compile()
-    graph.name = "Marketing Campaign Manager"
-    with open("marketing_campaign_skeleton.png", "wb") as f:
-        f.write(graph.get_graph().draw_mermaid_png(
-            draw_method=MermaidDrawMethod.API,
-        ))
+    print("Graph compiled successfully.")
     return graph
 
 # Compile and skeleton graph
-if __name__ == "__main__":
-    graph = build_app_graph()
-    print("Skeleton graph compiled successfully.")
+graph = build_app_graph()
+
 ```
 
 Let's run our code to make sure everything works as expected:
 
 ```bash
-poetry run python marketing_campaign.py
+poetry run python src/marketing_campaign/app.py
 ```
 
 You should see the output:
 ```
-"Skeleton graph compiled successfully."
+"Graph compiled successfully."
 ```
-
-And a file named "marketing_campaign_skeleton.png" should be created in your directory, showing a visualization of your LangGraph with the nodes we've defined.
 
 
 ## Step 2: Generate Models from Agent Manifests
 
 In this step, you will **generate** models based on the agent manifests to define the **input, output and config schemas** for each agent involved in MAS. The models are created using the `acp generate-agent-models` cli command, which reads the agent manifest files and produces Python files that encapsulate the agent's data structures and interfaces necessary for integration.
 
-> **What is an Agent Manifest?**
+> **What is an Agent Manifest?**\
 > An Agent Manifest is a detailed document outlining an agent's capabilities, deployment methods, data structure specifications and dependencies on other agents. It provides **essential information** for ensuring agents can communicate and work together within the **Agent Connect Protocol** and **Workflow Server ecosystem**. [Learn more](https://docs.agntcy.org/pages/agws/manifest.html)
 
 ### Schema and Type Generation
@@ -221,14 +188,11 @@ curl -o manifests/email_reviewer.json https://raw.githubusercontent.com/agntcy/a
 Now, we can generate the models using the `acp` command-line tool that was installed as part of our dependencies:
 
 ```bash
-# Activate the virtual environment (use 'poetry shell' if you have installed: poetry self add poetry-plugin-shell)
-source .venv/bin/activate  # Or 'poetry shell'
-
 # Generate models for Mail Composer
-acp generate-agent-models manifests/mailcomposer.json --output-dir ./models --model-file-name mailcomposer.py
+poetry run acp generate-agent-models manifests/mailcomposer.json --output-dir ./src/marketing_campaign --model-file-name mailcomposer.py
 
 # Generate models for Email Reviewer
-acp generate-agent-models manifests/email_reviewer.json --output-dir ./models --model-file-name email_reviewer.py
+poetry run acp generate-agent-models manifests/email_reviewer.json --output-dir ./src/marketing_campaign --model-file-name email_reviewer.py
 ```
 
 These commands create the necessary Python files containing the Pydantic models for interacting with these agents.
@@ -248,47 +212,55 @@ State in multi-agent systems refers to the structured data that represents the *
 
 ### State Definition in the Marketing Campaign Example
 
-Create a file named `state.py` in the project directory that will hold state definitions for the MAS:
+Create a file named `state.py` in the `src/marketing_campaign/` directory that will hold state definitions for the MAS:
 
 ```python
-# state.py
-
+# src/marketing_campaign/state.py
 from pydantic import BaseModel, Field
-from typing import Optional, List
-from models.mailcomposer import Message, InputSchema as MailComposerInputSchema, OutputSchema as MailComposerOutputSchema
-from models.email_reviewer import InputSchema as EmailReviewerInputSchema, OutputSchema as EmailReviewerOutputSchema, TargetAudience
+from typing import List, Optional
+from marketing_campaign import mailcomposer
+from marketing_campaign import email_reviewer
+
+class ConfigModel(BaseModel):
+    recipient_email_address: str = Field(..., description="Email address of the email recipient")
+    sender_email_address: str = Field(..., description="Email address of the email sender")
+    target_audience: email_reviewer.TargetAudience = Field(..., description="Target audience for the marketing campaign")
 
 class MailComposerState(BaseModel):
-    input: Optional[MailComposerInputSchema] = None
-    output: Optional[MailComposerOutputSchema] = None
+    input: Optional[mailcomposer.InputSchema] = None
+    output: Optional[mailcomposer.OutputSchema] = None
 
 class MailReviewerState(BaseModel):
-    input: Optional[EmailReviewerInputSchema] = None
-    output: Optional[EmailReviewerOutputSchema] = None
+    input: Optional[email_reviewer.InputSchema] = None
+    output: Optional[email_reviewer.OutputSchema] = None
 
 class OverallState(BaseModel):
-    messages: List[Message] = Field([], description="Chat messages")
+    messages: List[mailcomposer.Message] = Field([], description="Chat messages")
     operation_logs: List[str] = Field([],
-                                    description="An array containing all the operations performed and their result. Each operation is appended to this array with a timestamp.",
-                                    examples=[["Day DD HH:MM:SS Operation performed: email sent Result: OK",
-                                              "Day DD HH:MM:SS Operation X failed"]])
-    has_composer_completed: Optional[bool] = Field(None, description="Flag indicating if the mail composer has successfully completed its task")
+                                      description="An array containing all the operations performed and their result. Each operation is appended to this array with a timestamp.",
+                                      examples=[["Mar 15 18:10:39 Operation performed: email sent Result: OK",
+                                                 "Mar 19 18:13:39 Operation X failed"]])
+
+    has_composer_completed: Optional[bool] = Field(None, description="Flag indicating if the mail composer has succesfully completed its task")
     has_reviewer_completed: Optional[bool] = None
     has_sender_completed: Optional[bool] = None
     mailcomposer_state: Optional[MailComposerState] = None
     email_reviewer_state: Optional[MailReviewerState] = None
-    target_audience: Optional[TargetAudience] = None
+    target_audience: Optional[email_reviewer.TargetAudience] = None
 ```
 
-After creating the state file, update your `marketing_campaign.py` file to use this state definition:
+The `ConfigModel` defines the configuration parameters for the Marketing Campaign application:
+* `recipient_email_address`: Specifies who will receive the email (target recipient)
+* `sender_email_address`: Defines the email address that will appear in the "From" field
+* `target_audience`: Provides details about the audience the email is intended for, allowing the Email Reviewer to optimize content appropriately
+
+After creating the state file, replace the imports in your `app.py` file with:
 
 ```python
-# Update imports in marketing_campaign.py
+# Replace all imports at the top of src/marketing_campaign/app.py with:
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.state import CompiledStateGraph
-from langchain_core.runnables.graph import MermaidDrawMethod
-# Import the state from our new file
-from state import OverallState, MailComposerState
+from marketing_campaign.state import OverallState
 
 # IMPORTANT: Remove the
 # class OverallState(BaseModel):
@@ -305,6 +277,7 @@ With this state definition in place, your application now has a structured appro
 
 The next step involves transforming our placeholder nodes into actual ACP nodes for remote agent integration.
 
+
 ## Step 4: Multi-Agent Application Development
 
 Now, let's enhance the skeleton setup by **transforming** LangGraph nodes **into ACP nodes** using `agntcy_acp` **sdk**. ACP nodes allow network communication between agents by using the **Agent Connect Protocol (ACP)**.
@@ -320,61 +293,59 @@ This enables remote invocation, configuration, and output retrieval with the goa
 
 ### Add Mail Composer and Email Reviewer ACP Nodes
 
-To integrate the Mail Composer and Email Reviewer as ACP nodes, update the `marketing_campaign.py` file by adding the following imports and configuration at the top of the file:
+To integrate the Mail Composer and Email Reviewer as ACP nodes, update the `src/marketing_campaign/app.py` file by adding the following imports at the top of the file:
 
 ```python
+# Add these imports at the top of src/marketing_campaign/app.py
 import os
-from models import mailcomposer, email_reviewer
+from marketing_campaign import mailcomposer
+from marketing_campaign import email_reviewer
 from agntcy_acp import ApiClientConfiguration
 from agntcy_acp.langgraph.acp_node import ACPNode
+```
 
-# Fill in client configuration for the remote agents
+Then, add the client configuration for the remote agents below your imports:
+
+```python
+# Below your imports, fill in client configuration for the remote agents
 MAILCOMPOSER_AGENT_ID = os.environ.get("MAILCOMPOSER_ID", "")
 EMAIL_REVIEWER_AGENT_ID = os.environ.get("EMAIL_REVIEWER_ID", "")
 mailcomposer_client_config = ApiClientConfiguration.fromEnvPrefix("MAILCOMPOSER_")
 email_reviewer_client_config = ApiClientConfiguration.fromEnvPrefix("EMAIL_REVIEWER_")
 ```
 
-> **Understanding fromEnvPrefix Method:**
-> The `ApiClientConfiguration.fromEnvPrefix()` method simplifies configuration by automatically finding and using environment variables with a specific prefix. For example, with prefix "MAILCOMPOSER_", it will look for:
-> - `MAILCOMPOSER_API_KEY`: Authentication key for the agent
-> - `MAILCOMPOSER_HOST`: Base URL endpoint for the agent
-
 Next, define the ACP nodes to **replace** our placeholder functions:
 
-* Mail Composer ACP Node
+```python
+# Mail Composer ACP Node
+acp_mailcomposer = ACPNode(
+    name="mailcomposer",
+    agent_id=MAILCOMPOSER_AGENT_ID,
+    client_config=mailcomposer_client_config,
+    input_path="mailcomposer_state.input",
+    input_type=mailcomposer.InputSchema,
+    output_path="mailcomposer_state.output",
+    output_type=mailcomposer.OutputSchema,
+)
 
-    ```python
-    acp_mailcomposer = ACPNode(
-        name="mailcomposer",
-        agent_id=MAILCOMPOSER_AGENT_ID,
-        client_config=mailcomposer_client_config,
-        input_path="mailcomposer_state.input",
-        input_type=mailcomposer.InputSchema,
-        output_path="mailcomposer_state.output",
-        output_type=mailcomposer.OutputSchema,
-    )
-    ```
-
-* Email Reviewer ACP Node
-
-    ```python
-    acp_email_reviewer = ACPNode(
-        name="email_reviewer",
-        agent_id=EMAIL_REVIEWER_AGENT_ID,
-        client_config=email_reviewer_client_config,
-        input_path="email_reviewer_state.input",
-        input_type=email_reviewer.InputSchema,
-        output_path="email_reviewer_state.output",
-        output_type=email_reviewer.OutputSchema,
-    )
-    ```
+# Email Reviewer ACP Node
+acp_email_reviewer = ACPNode(
+    name="email_reviewer",
+    agent_id=EMAIL_REVIEWER_AGENT_ID,
+    client_config=email_reviewer_client_config,
+    input_path="email_reviewer_state.input",
+    input_type=email_reviewer.InputSchema,
+    output_path="email_reviewer_state.output",
+    output_type=email_reviewer.OutputSchema,
+)
+```
 
 > **Note**: The `_path` fields indicate where to find the input and output in the `OverallState`, while the `_type` fields specify the type of the input and output.
 
 Finally, update the `build_app_graph` function to use these ACP nodes instead of the placeholder functions:
 
 ```python
+# Update your build_app_graph function
 def build_app_graph() -> CompiledStateGraph:
     sg = StateGraph(OverallState)
 
@@ -390,11 +361,7 @@ def build_app_graph() -> CompiledStateGraph:
     sg.add_edge(send_mail.__name__, END)
 
     graph = sg.compile()
-    graph.name = "Marketing Campaign Manager"
-    with open("marketing_campaign_acp.png", "wb") as f:
-        f.write(graph.get_graph().draw_mermaid_png(
-            draw_method=MermaidDrawMethod.API,
-        ))
+    print("Graph compiled successfully.")
     return graph
 ```
 
@@ -407,15 +374,20 @@ For more detailed information about the API Bridge Agent implementation and conf
 
 ### Add SendGrid API Bridge Node
 
-To integrate the SendGrid API Bridge into our `marketing_campaign.py` file, add the following imports at the top of your file (along with the previous imports):
+To integrate the SendGrid API Bridge into our `src/marketing_campaign/app.py` file, add the following imports at the top of your file (along with the previous imports):
+
 
 ```python
+# Add these imports at the top of src/marketing_campaign/app.py
 from agntcy_acp.langgraph.api_bridge import APIBridgeAgentNode
 ```
 
-Then add the SendGrid configuration below the existing agent configurations:
+Then add the SendGrid configuration below the existing agent configurations, replacing the placeholder `send_mail` function:
 
 ```python
+# Remove the placeholder send_mail function in src/marketing_campaign/app.py
+# and replace it with this APIBridgeAgentNode:
+
 # Instantiate APIBridge Agent Node
 SENDGRID_HOST = os.environ.get("SENDGRID_HOST", "http://localhost:8080")
 sendgrid_api_key = os.environ.get("SENDGRID_API_KEY", None)
@@ -431,6 +403,7 @@ send_email = APIBridgeAgentNode(
     service_name="sendgrid/v3/mail/send"
 )
 ```
+
 > **Explanation**:
 > - The `_path` fields indicate where to find the input and output in the `OverallState`, as explained in [Step 4](#step-4-multi-agent-application-development).
 > - The `service_name` field specifies the endpoint manually (`sendgrid/v3/mail/send`). However, the API Bridge can **automatically determine** the correct endpoint based on the natural language request if this field is not provided. [Learn more](https://docs.agntcy.org/pages/syntactic_sdk/api_bridge_agent.html)
@@ -439,6 +412,7 @@ send_email = APIBridgeAgentNode(
 Finally, update your `build_app_graph` function to **replace** the placeholder `send_mail` function defined in [Step 1](#step-1-create-a-basic-langgraph-skeleton-application) with the new `send_email` API Bridge node:
 
 ```python
+# Update your build_app_graph function
 def build_app_graph() -> CompiledStateGraph:
     sg = StateGraph(OverallState)
 
@@ -454,11 +428,7 @@ def build_app_graph() -> CompiledStateGraph:
     sg.add_edge(send_email.get_name(), END)
 
     graph = sg.compile()
-    graph.name = "Marketing Campaign Manager"
-    with open("marketing_campaign_acp.png", "wb") as f:
-        f.write(graph.get_graph().draw_mermaid_png(
-            draw_method=MermaidDrawMethod.API,
-        ))
+    print("Graph compiled successfully.")
     return graph
 ```
 
@@ -469,9 +439,7 @@ For a complete setup guide including Tyk gateway configuration and SendGrid API 
 
 In this section, we will explore how to handle inputs and outputs effectively within the workflow. Managing the flow of data between agents allows to maintain the integrity of the process.
 
-To achieve this, we not only added the **I/O Mapper**, a powerful tool that automatically transforms outputs from one node to match the input requirements of the next using an LLM, but also **introduced additional nodes** to demonstrate how to perform **manual mapping**. This combination showcases both automated and manual approaches handle the state within the application.
-
-### Why Use I/O Mapper?
+To achieve this, we not only add the **I/O Mapper**, a powerful tool that automatically transforms outputs from one node to match the input requirements of the next using an LLM, but also **introduce additional nodes** to demonstrate how to perform **manual mapping**. This combination showcases both automated and manual approaches to handle the state within the application.
 
 > **What is I/O Mapper?**\
 > I/O Mapper is a component that ensures compatibility between agents by **transforming outputs to meet the input requirements** of subsequent agents. It addresses both **format-level** and **semantic-level** compatibility by leveraging an LLM to perform tasks such as:
@@ -496,33 +464,21 @@ Among the three nodes added so far, some additional nodes are required to handle
 
 To make this tutorial code fully functional, we need to add implementations for the processing nodes mentioned above:
 
-1. First, update the `state.py` file to include a SendGridState definition:
+1. First, update the `src/marketing_campaign/state.py` file to include a SendGridState definition:
     ```python
-    # state.py
+    # src/marketing_campaign/state.py
+    # Add these imports
     from agntcy_acp.langgraph.api_bridge import APIBridgeOutput, APIBridgeInput
-    from pydantic import BaseModel, Field
-    from typing import List, Optional
-    from models import mailcomposer
-    from models import email_reviewer
 
-    class ConfigModel(BaseModel):
-        recipient_email_address: str = Field(..., description="Email address of the email recipient")
-        sender_email_address: str = Field(..., description="Email address of the email sender")
-        target_audience: email_reviewer.TargetAudience = Field(..., description="Target audience for the marketing campaign")
-
-    class MailComposerState(BaseModel):
-        input: Optional[mailcomposer.InputSchema] = None
-        output: Optional[mailcomposer.OutputSchema] = None
-
-    class MailReviewerState(BaseModel):
-        input: Optional[email_reviewer.InputSchema] = None
-        output: Optional[email_reviewer.OutputSchema] = None
-
+    # Add SendGridState class along with existing state classes
     class SendGridState(BaseModel):
         input: Optional[APIBridgeInput] = None
         output: Optional[APIBridgeOutput]= None
-
+    ```
+2. Then, update `OverallState` class to include `sendgrid_state` in `src/marketing_campaign/state.py`:
+    ```python
     class OverallState(BaseModel):
+        # Add sendgrid_state to OverallState
         messages: List[mailcomposer.Message] = Field([], description="Chat messages")
         operation_logs: List[str] = Field([],
                                         description="An array containing all the operations performed and their result. Each operation is appended to this array with a timestamp.",
@@ -535,22 +491,24 @@ To make this tutorial code fully functional, we need to add implementations for 
         mailcomposer_state: Optional[MailComposerState] = None
         email_reviewer_state: Optional[MailReviewerState] = None
         target_audience: Optional[email_reviewer.TargetAudience] = None
-        sendgrid_state: Optional[SendGridState] = None
+        sendgrid_state: Optional[SendGridState] = None  # Add this line
     ```
 
-
-2. Then, update imports at the top of your `marketing_campaign.py` file:
-
+3. Subsequently, update imports at the top of your `src/marketing_campaign/app.py` file:
     ```python
+    # src/marketing_campaign/app.py
+    # Update import to include SendGridState
+    from marketing_campaign.state import OverallState, MailComposerState, SendGridState
+
+    # Add these imports
     import copy
-    from state import OverallState, MailComposerState, SendGridState
     from agntcy_acp.langgraph.api_bridge import APIBridgeAgentNode, APIBridgeInput
     from langchain_core.runnables import RunnableConfig
     ```
 
-
-3. Finally, implement the processing nodes in `marketing_campaign.py`:
+4. Finally, implement the processing nodes in `src/marketing_campaign/app.py`:
     ```python
+    # Add these processing nodes to src/marketing_campaign/app.py
     def process_inputs(state: OverallState, config: RunnableConfig) -> OverallState:
         cfg = config.get('configurable', {})
 
@@ -568,7 +526,6 @@ To make this tutorial code fully functional, we need to add implementations for 
                 messages=copy.deepcopy(state.messages),
                 is_completed=state.has_composer_completed
             )
-
         )
         return state
 
@@ -587,7 +544,7 @@ To make this tutorial code fully functional, we need to add implementations for 
         )
         return state
 
-    def prepare_output(state: OverallState, config:RunnableConfig) -> OverallState:
+    def prepare_output(state: OverallState, config: RunnableConfig) -> OverallState:
         state.messages = copy.deepcopy(
             state.mailcomposer_state.output.messages if (state.mailcomposer_state
                 and state.mailcomposer_state.output
@@ -607,12 +564,14 @@ The edge between the `mailcomposer` and subsequent nodes is a **conditional edge
 - If the user input is **not "OK"**, the graph transitions to the `prepare_output` node, allowing the user to interact with the `mailcomposer` again.
 - If the user input is **"OK"**, the graph transitions to the `email_reviewer` node and continues through the workflow.
 
-The conditional edge is implemented with the I/O Mapper, which ensures that the outputs of one node are transformed to match the input requirements of the next node. Here's the code of `marketing_campaign.py` for implementing the conditional edge:
+The conditional edge is implemented with the I/O Mapper, which ensures that the outputs of one node are transformed to match the input requirements of the next node. Here's how to implement the conditional edge in `src/marketing_campaign/app.py`:
 
-1. Add LLM client for the I/O Mapper, in this example `AzureChatOpenAI`, but you can use any LLM client supported by LangChain
+1. Add LLM client for the I/O Mapper. In this example we're using `AzureChatOpenAI`, but you can use any LLM client supported by LangChain:
     ```python
+    # Add LLM client to src/marketing_campaign/app.py
     from langchain_openai.chat_models.azure import AzureChatOpenAI
 
+    # Initialize LLM for the I/O Mapper
     llm = AzureChatOpenAI(
         model="gpt-4o-mini",
         api_version="2024-07-01-preview",
@@ -621,57 +580,74 @@ The conditional edge is implemented with the I/O Mapper, which ensures that the 
     )
     ```
 
-2. Define the conditional edge function
+2. Define the conditional edge function in `src/marketing_campaign/app.py`:
     ```python
-    def check_final_email(state: state.OverallState):
+    # Add conditional edge function to src/marketing_campaign/app.py
+    def check_final_email(state: OverallState):
+        """Determine whether to proceed to email review or continue user interaction.
+
+        Returns:
+            "done": If the mailcomposer has produced a final email
+            "user": If we need to continue interacting with the user
+        """
         return "done" if (state.mailcomposer_state
                         and state.mailcomposer_state.output
                         and state.mailcomposer_state.output.final_email
                         ) else "user"
     ```
 
-3. Next, update the `build_app_graph` function to include our new nodes and the `add_io_mapped_conditional_edge` edge:
-
+3. Next, update the `build_app_graph` function in `src/marketing_campaign/app.py` to include our new nodes and the `add_io_mapped_conditional_edge` edge:
     ```python
-    # Add nodes
-    sg.add_node(process_inputs)
-    sg.add_node(acp_mailcomposer)
-    sg.add_node(acp_email_reviewer)
-    sg.add_node(send_email)
-    sg.add_node(prepare_sendgrid_input)
-    sg.add_node(prepare_output)
+    # Add import for I/O Mapper in src/marketing_campaign/app.py
+    from agntcy_acp.langgraph.io_mapper import add_io_mapped_conditional_edge
 
-    # Add edges
-    sg.add_edge(START, "process_inputs")
-    sg.add_edge("process_inputs", acp_mailcomposer.get_name())
+    # Update build_app_graph 
+    def build_app_graph() -> CompiledStateGraph:
+        sg = StateGraph(OverallState)
 
-    ## Add conditional edge between mailcomposer and either email_reviewer or END, adding io_mappers between them
-    add_io_mapped_conditional_edge(
-        sg,
-        start=acp_mailcomposer,
-        path=check_final_email,
-        iomapper_config_map={
-            "done": {
-                "end": acp_email_reviewer,
-                "metadata": {
-                    "input_fields": ["mailcomposer_state.output.final_email", "target_audience"]
+        # Add all nodes to the graph
+        sg.add_node(process_inputs)
+        sg.add_node(acp_mailcomposer)
+        sg.add_node(acp_email_reviewer)
+        sg.add_node(send_email)
+        sg.add_node(prepare_sendgrid_input)
+        sg.add_node(prepare_output)
+
+        # Define the initial flow
+        sg.add_edge(START, "process_inputs")
+        sg.add_edge("process_inputs", acp_mailcomposer.get_name())
+
+        # Add conditional edge between mailcomposer and either email_reviewer or END, adding io_mappers between them
+        add_io_mapped_conditional_edge(
+            sg,
+            start=acp_mailcomposer,
+            path=check_final_email,
+            iomapper_config_map={
+                "done": {
+                    "end": acp_email_reviewer,
+                    "metadata": {
+                        "input_fields": ["mailcomposer_state.output.final_email", "target_audience"]
+                    }
+                },
+                "user": {
+                    "end": "prepare_output",
+                    "metadata": None
                 }
             },
-            "user": {
-                "end": "prepare_output",
-                "metadata": None
-            }
-        },
-        llm=llm
-    )
+            llm=llm
+        )
 
-    sg.add_edge(acp_email_reviewer.get_name(), "prepare_sendgrid_input")
-    sg.add_edge("prepare_sendgrid_input", send_email.get_name())
-    sg.add_edge(send_email.get_name(), "prepare_output")
-    sg.add_edge("prepare_output", END)
+        # Define the remaining flow for the "done" path
+        sg.add_edge(acp_email_reviewer.get_name(), "prepare_sendgrid_input")
+        sg.add_edge("prepare_sendgrid_input", send_email.get_name())
+        sg.add_edge(send_email.get_name(), "prepare_output")
+        sg.add_edge("prepare_output", END)
+
+        graph = sg.compile()
+        print("Graph compiled successfully.")
+        return graph
     ```
 
-<!-- TODO: Improve description of inputs of io mapper -->
 #### Explanation of Parameters and Workflow Behavior:
 
 - **`start=acp_mailcomposer`**: Specifies the starting node for the conditional edge, which is the `mailcomposer`.
@@ -693,6 +669,7 @@ With these additions, our application now has a complete workflow that can:
 5. Prepare and send emails using the SendGrid API Bridge
 6. Provide meaningful output back to the user
 
+
 ## Step 7: Generate Application Manifest
 
 In this step, we will **generate the Agent Manifest** for our Marketing Campaign application. The manifest generation enables our application to be used by other applications and to be deployed through an [Agent Workflow Server](https://github.com/agntcy/workflow-srv).
@@ -704,12 +681,13 @@ In this step, we will **generate the Agent Manifest** for our Marketing Campaign
 
 ### Creating the Manifest Generator
 
-Let's create a new file called `generate_manifest.py` in the root of our project:
+Let's create a new file called `generate_manifest.py` in the `src/marketing_campaign/` directory:
 
 ```python
+# src/marketing_campaign/generate_manifest.py
 from pathlib import Path
 from pydantic import AnyUrl
-from state import OverallState, ConfigModel
+from marketing_campaign.state import OverallState, ConfigModel
 from agntcy_acp.manifest import (
     AgentManifest,
     AgentDeployment,
@@ -754,7 +732,7 @@ manifest = AgentManifest(
                     url=AnyUrl("file://."),
                     framework_config=LangGraphConfig(
                         framework_type="langgraph",
-                        graph="marketing_campaign:graph"
+                        graph="marketing_campaign.app:graph"
                     )
                 )
             )
@@ -779,7 +757,7 @@ manifest = AgentManifest(
     )
 )
 
-with open(f"{Path(__file__).parent}/manifests/marketing-campaign.json", "w") as f:
+with open(f"{Path(__file__).parent.parent.parent}/manifests/marketing-campaign.json", "w") as f:
     json_content = manifest.model_dump_json(
         exclude_unset=True,
         exclude_none=True,
@@ -808,7 +786,7 @@ Let's break down the components of our manifest generator:
 3. **Deployment**: This section contains deployment-related information:
    - `deployment_options`: Defines how the agent can be deployed
      - `url=AnyUrl("file://.")`: Specifies that the source code is located in the current directory (relative to where the manifest is being used)
-     - `framework_config`: Specifies that this is a LangGraph application with the graph defined in `marketing_campaign:graph`
+     - `framework_config`: Specifies that this is a LangGraph application with the graph defined in `marketing_campaign.app:graph`
 
    - `env_vars`: Lists the environment variables required by the marketing campaign.
    - `dependencies`: Lists the agents that our application depends on. Each dependency specifies:
@@ -820,7 +798,11 @@ Let's break down the components of our manifest generator:
 Now, let's run our script to generate the manifest:
 
 ```bash
-poetry run python generate_manifest.py
+# Install the current project
+poetry install
+
+# Run the manifest generator
+poetry run python src/marketing_campaign/generate_manifest.py
 ```
 
 This will create a file called `marketing-campaign.json` in the `manifests` directory, which contains all the information needed for:
@@ -854,10 +836,10 @@ After generating the manifest, we can deploy and run our application using the W
 
 ### Installing the Workflow Server Manager
 
-First, download the Workflow Server Manager CLI appropriate for your operating system from the [releases page](https://github.com/agntcy/workflow-srv-mgr/releases):
+First, download the Workflow Server Manager CLI appropriate for your operating system from the [releases page](https://github.com/agntcy/workflow-srv-mgr/releases).  Make sure to execute these commands from the root directory of your project:
 
 ```bash
-# For macOS with Apple Silicon
+# For macOS with Apple Silicon (run from project root)
 curl -L https://github.com/agntcy/workflow-srv-mgr/releases/download/v0.1.1/wfsm0.1.1_darwin_arm64.tar.gz -o wfsm.tar.gz
 tar -xzf wfsm.tar.gz # Keep the extracted wfsm binary it in the project root
 chmod +x wfsm
@@ -868,7 +850,7 @@ Follow these [instructions](https://docs.agntcy.org/pages/agws/workflow_server_m
 
 ### Configuring the Application Environment
 
-Before starting the workflow server, create a configuration file that provides the necessary environment variables and dependency settings. Create a file named `marketing_campaign_config.yaml` in your project root:
+Before starting the workflow server, create a configuration file that provides the necessary environment variables for the marketing-campaign application and its dependencies. Create a file named `marketing_campaign_config.yaml` in your project root directory:
 
 ```yaml
 # marketing_campaign_config.yaml
@@ -897,7 +879,7 @@ Before testing the full application workflow, you need to set up the SendGrid AP
 
 ### Deploying the Application
 
-Now, deploy the Marketing Campaign workflow server using the manifest we generated:
+Now, deploy the Marketing Campaign workflow server using the manifest we generated. Run this command from the root directory of your project:
 
 ```bash
 ./wfsm deploy -m ./manifests/marketing-campaign.json -e ./marketing_campaign_config.yaml
@@ -920,72 +902,10 @@ Take note of the **Agent ID**, **API Key**, and **Host** information, as you'll 
 
 To test our application, we'll use an ACP client that allows us to communicate with the deployed workflow server:
 
-1. In the project root, create the client script `main_acp_client.py`:
-    ``` python
-    #main_acp_client.py
-    import os
-    import asyncio
-    from state import OverallState, ConfigModel
-    from marketing_campaign import mailcomposer
-    from marketing_campaign import email_reviewer
-    from agntcy_acp import AsyncACPClient, ApiClientConfiguration
-    from agntcy_acp.acp_v0.async_client.api_client import ApiClient as AsyncApiClient
-
-    from agntcy_acp.models import (
-        RunCreateStateless,
-        RunResult,
-        RunError,
-        Config,
-    )
-
-    async def main():
-        print("What marketing campaign do you want to create?")
-        inputState = OverallState(
-            messages=[],
-            operation_logs=[],
-            has_composer_completed=False
-        )
-
-        marketing_campaign_id = os.environ.get("MARKETING_CAMPAIGN_ID", "")
-        client_config = ApiClientConfiguration.fromEnvPrefix("MARKETING_CAMPAIGN_")
-
-        while True:
-            usermsg = input("YOU [Type OK when you are happy with the email proposed] >>> ")
-            inputState.messages.append(mailcomposer.Message(content=usermsg, type=mailcomposer.Type.human))
-            run_create = RunCreateStateless(
-                agent_id=marketing_campaign_id,
-                input=inputState.model_dump(),
-                config=Config(configurable=ConfigModel(
-                    recipient_email_address=os.environ["RECIPIENT_EMAIL_ADDRESS"],
-                    sender_email_address=os.environ["SENDER_EMAIL_ADDRESS"],
-                    target_audience=email_reviewer.TargetAudience.academic
-                ).model_dump())
-            )
-            async with AsyncApiClient(configuration=client_config) as api_client:
-                acp_client = AsyncACPClient(api_client=api_client)
-                run_output = await acp_client.create_and_wait_for_stateless_run_output(run_create)
-                if run_output.output is None:
-                    raise Exception("Run output is None")
-                actual_output = run_output.output.actual_instance
-                if isinstance(actual_output, RunResult):
-                    run_result: RunResult = actual_output
-                elif isinstance(actual_output, RunError):
-                    run_error: RunError = actual_output
-                    raise Exception(f"Run Failed: {run_error}")
-                else:
-                    raise Exception(f"ACP Server returned a unsupported response: {run_output}")
-
-                runState = run_result.values # type: ignore
-                outputState = OverallState.model_validate(runState)
-                if len(outputState.operation_logs) > 0:
-                    print(outputState.operation_logs)
-                    break
-                else:
-                    print(outputState.messages[-1].content)
-                inputState = outputState
-
-    if __name__ == "__main__":
-        asyncio.run(main())
+1. Download the client script by running the following command from the root of the project:
+    ```bash
+    # Download the ACP client example from the agntcy/agentic-apps repository
+    curl https://raw.githubusercontent.com/agntcy/agentic-apps/refs/heads/main/marketing-campaign/src/marketing_campaign/main_acp_client.py -o src/marketing_campaign/main_acp_client.py
     ```
 
 2. Set the environment variables with the information from your deployment logs:
@@ -1000,9 +920,8 @@ To test our application, we'll use an ACP client that allows us to communicate w
     ```
 
 3. Run the ACP client:
-
     ```bash
-    poetry run python main_acp_client.py
+    poetry run python src/marketing_campaign/main_acp_client.py
     ```
 
 4. Interact with the application:
